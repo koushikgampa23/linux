@@ -389,9 +389,174 @@ The linux readme contains all the commands
     Server keeps running
     Terminal becomes available
     This is a background process
-    
 
+## Networking
+    Networking flow:
+        Browser -> DNS(myapp.com -> IP address) -> Internet -> AWS EC2 -> Ngnix -> Gunicorn -> Django -> Postgres
+    If something is breaking we use networking commands to find where it is
 
+    1.Ping
+        Check another machine is reachable
+            ping google.com
+        We get this
+            64 bytes from ...
+            time=22 ms
+        This means
+            DNS resolved google.com
+            Network connectivity exists
+            The remote host responded
+        When your django application cant make a external api call
+            ping api.github.com
+            If this fails:
+                No internet
+                DNS problem
+                Firewall
+                The host blocks ICMP(ping)
+            Important: Many production servers disable ping, so a failed ping doesn't always mean the service is down.
+    2.curl
+        curl is a command-line tool used to send HTTP/HTTPS requests to web servers and APIs. It is commonly used to test REST APIs, download data, upload files, and debug network connectivity
+
+        curl http://www.google.com/ it does get request
+        curl -I http://www.google.com/ we HTTP/1.1 200 OK headers as well
+        
+        By default curl sends HTTP request but we can send other methods too
+        curl -X POST -H "Content-Type: application/json" -d '{"name":"laptop"}' http://www.google.com/ 
+
+        Why do we use this?
+            Suppose the django application calls an external api
+                response = requests.get("https://api.github.com")
+            if it fails i can run
+                curl https://api.github.com
+            if curl succeeds, the network is likely fine, and the issue is probably in your application code or configuration.
+            If curl also fails, the issue is likely with network connectivity, DNS, firewall rules, proxy settings, or the remote service itself.
     
+    3.wget
+        wget is another command-line tool used to download files from the internet using HTTP, HTTPS, and FTP protocols.
+        Unlike curl, which is mainly used for sending and testing HTTP requests, wget is primarily designed for downloading content.
+        Example:
+            wget https://example.com/file.zip
+        Download and save with a different name:
+            wget -O myfile.zip https://example.com/file.zip
+        Resume an interrupted download:
+            wget -c https://example.com/file.zip
+        Download in background
+            wget -b https://example.com/file.zip
     
+        Curl vs wget
+        Curl:
+            Curl primary purpose Send http/https request to API's
+            Supports HTTP/HTTPS requests
+            Support FTP
+            Default Action Prints response to terminal
+            Best for Rest APIs
+            Resume downloads Limited
+        Wget:
+            Primary purpose Download files
+            Supports both http and https requests
+            Suppots FTP
+            Default action: Saves response to file
+            Best for Rest APIs: Possible, but less convenient
+            Resume download Excellent support
+        
+            wget is a command-line utility used to download files from web servers over HTTP, HTTPS, or FTP. It supports features like recursive downloading, resuming interrupted downloads, and background downloads, making it useful for downloading large files or entire websites.
     
+    4. SS
+        SS stands for Socket Statistics.
+        It is a Linux command used to display network sockets and connections. It is the modern replacement for netstat and is faster.
+        we can use it to check
+            Which ports are listening
+            Wheather the application is running or not
+            Active TCP/UDP connections
+            Which process is using a specific port
+        Show all tcp connections
+            ss -t
+        Show all udp connections
+            ss -u
+        show listening ports
+            ss -l
+        show listening tcp ports
+            ss -lt
+        show listening ports with process name
+            ss -ltnp
+        -n Show numeric addresses and port numbers (don't resolve names).
+        -p Show the process (program) using the socket, including the PID and process name.
+        To check if django application listening to 8000 port
+            ss -ltnp | grep 8000
+            LISTEN 0      4096         0.0.0.0:8002       0.0.0.0:*
+
+            ss -ltun | grep 3000
+            -ltun means listening socket tcp socket/udp socket show numeric address and posts numbers
+        
+        ss -ltunp displays all listening TCP and UDP sockets with numeric IP addresses and port numbers, along with the process name and PID that own each socket. It's commonly used to verify which services are listening on which ports and which processes are using them.
+    
+    5. Dig
+        dig stands for Domain Information Groper.
+        It is a Linux command used to query DNS (Domain Name System) servers. It helps you find information such as the IP address of a domain, mail servers, name servers, and other DNS records.
+        As a backend developer, dig is commonly used to troubleshoot DNS resolution issues.
+
+        dig google.com
+        ;; QUESTION SECTION:; google.com.
+        ;; ANSWER SECTION:
+        google.com.             93      IN      A       172.253.118.138
+
+        Dig Vs Ping Vs Curl
+            dig google.com -> Resolves the domain name to an IP address (DNS lookup).
+            ping google.com -> Checks whether the host is reachable using ICMP packets.
+            curl google.com -> Sends an actual HTTP/HTTPS request to the server.
+        In debugging sense:
+            DNS: Can I resolve the hostname? -> dig
+            Network: Can I reach the host? -> ping (if ICMP isn't blocked)
+            Application: Can I make an HTTP/HTTPS request? -> curl
+    
+    6. Nslookup
+        nslookup is another DNS lookup tool. Like dig, it is used to check whether a domain name can be resolved to an IP address.
+        The main reason to use nslookup is DNS troubleshooting.
+        nslookup google.com
+            Server:         127.0.0.53
+            Address:        127.0.0.53#53
+
+            Non-authoritative answer:
+            Name:   google.com
+            Address: 64.233.170.101
+            Name:   google.com
+            Address: 64.233.170.102
+        
+        nslookup vs dig
+        nslookup
+            simple output
+            Easy for quick dns checks
+            Available on windows, linux and macos
+            Basic debugging
+        dig
+            More detailed output
+            Better for indepth DNS troubleshooting
+            Common for linux and macos
+            Peffered by linux administators for advanced dns analysis
+    
+    7. traceroute
+        Shows the path packets take to reach a destination.
+        traceroute google.com
+        Useful when diagnosing network routing issues or unexpected latency.
+    
+### Production system
+    my app is running at https://mycompany.com isn't working
+    
+    Step1:
+        Check is the ngnix port listening
+            ss -ltun
+        No port 80? Nginix isn't running
+        sudo systemctl restart ngnix
+    Step2:
+        Still failing
+        check application is working or not
+        curl localhost
+        If we get 200 ok the issue may be AWS Security Group, Load Balancer, DNS, Firewall
+    Step3:
+        check dns
+        nslookup mycompany.com or dig mycompany.com
+    Step4:
+        Check the application
+        curl localhost:8000
+        if it fails probably the django application has issue
+    
+        

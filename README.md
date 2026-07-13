@@ -93,13 +93,6 @@ The linux readme contains all the commands
     To see current working directory:
         use pwd
 
-### Ls and cd commands
-    ls - Shows files in the current directory
-    cd - change directory
-    cd .. - Go back one directory
-    cd ~ - Go to home directory
-    cd / - Go to filesystem root
-
 ### Questions
     1.What is linux kernal?
         The Linux kernel is the core of the operating system. It acts as an intermediary between applications and the hardware by managing resources such as CPU, memory, disks, files, processes, and networking through system calls.
@@ -133,7 +126,231 @@ The linux readme contains all the commands
 
     ls -R -> Recursive Listing, Shows everything inside subdirectories., Useful for quickly viewing a project structure.
 
+### Commands
+    cd -> change directory
+    cd .. -> Go back 
+    cd ~ -> Go home directory
+    cd / -> Go root directory
+
+    mkdir -> make directory
+        mkdir logs
+        logs/
     
+    mkdir -p -> Creates nested directories
+        mkdir -p project/backend/api
+    
+    touch - creates an empty file
+        touch app.py creates a app.py empty file
+    Create multiple files
+        touch app.py create.py hello.py
+    
+    cp - copy a file
+        cp app.py backup.py
+        copy a directory
+            cp -r test/ test_backup/
+        -r = recursive
+    
+    mv - Move files
+        mv app.py backup/
+        
+    Rename a file
+        mv old.py new.py
+    
+    rm - delete a file
+        rm app.py
+        Delete a directory
+        rm -r test
+        Delete without confirmation
+        rm -rf test
+    
+    tree - Displays directory structure visually
+
+    Wildcards
+        Match every python file
+            ls *.py -> a.py, b.py, test.py 
+        Delete all log files
+            rm *.py
+        Match exactly one character
+            ?.py -> a.py, b.py, test.py(invalid)
+        Match a set of character
+            ls files[1-5].py -> files1.py, ...,files5.py
+    Find
+        searches for files and directories
+        find . -name "*.py" -> app/views.py, app/manage.py
+        find . -name "*.log"
+    Find directories
+        find . -type d
+    Find files larger than 100mb
+        find . -size +100M
+    
+    locate -> A very fast file search command
+        locate manage.py
+    Unlike find it searches prebuilt database of file locations, making it much faster.
+    If a recently created file isn't found, you may need to update the database (typically with updatedb, which requires appropriate permissions).
+
+    Realworld backend flow
+        pwd                 # Where am I?
+        ls -la              # View all files, including hidden ones
+        cd my_project       # Enter the project directory
+        find . -name "*.log" # Locate log files
+        cp .env .env.backup # Backup environment file
+        mkdir backups       # Create a backup directory
+        mv error.log backups/ # Archive an old log
+        tree                # Inspect the project structure
+
+#### Questions
+    1. Difference between cp and mv
+        cp creates a duplicate of a file or directory while keeping the original intact. mv moves a file or directory to a new location or renames it. After mv, the original location no longer contains the file.
+    2.Why cp -r?
+        cp alone copies files.
+        Directories require:
+        cp -r project project_backup
+        because -r means recursive (copy everything inside the directory).
+    3.mkdir -p
+        Used to create nested directories
+        It doesn't fail if the parent directories don't exist.
+    4.Difference between find and locate
+        find
+            searches the actul file system
+            slower
+            always up to date
+        locate
+            searches a prebuilt database of file locations
+            very fast
+            Database may be outdated until refreshed
+    5.Difference between ls, ls -a, ls -l
+        ls -> lists files and folders
+        ls -l -> shows permissions, owner, group, file size, last modified, file name
+    6.?.py
+        It matches exactly one character.
+    7.*
+        matches zero or more characters
+
+### Permissions
+    when i use ls -l
+    -rwxr-xr-- 1 koushik developers 2048 Jul 10 10:15 app.py
+    - -> Tells us it a file type
+    - -> file type, d -> Directory, l -> Symbolic link, c -> Character device, b -> Block device
+    Ignore first character -
+    now divide this into three groups
+        rwx -> owner
+        r-x -> group
+        r-- -> others
+    Suppose -rwxr-xr-- 1 koushik developers app.py
+        koushik is owner
+        developer are group
+        Everyone else on the system falls under Others.
+
+    Permission Meaning
+        Read(r)
+            value=4
+            Allows:
+                Read a file
+                view directory contents
+        Write(w)
+            value=2
+            Allows:
+                Modify a file
+                Write a file in directory
+                Delete a file(subject to directory permissions)
+        Execute(x)
+            value=1
+            Allows:
+                Execute a program or script
+                Enter (traverse) a directory
+    
+    Understaning rwx
+        rwx -> read,write,execute
+        rw- -> read,write
+        r-x -> read,execute
+        r-- -> read
+        --- -> No permission
+    
+    Numeric Permissions
+        rwx -> 4+2+1 = 7
+        rw- -> 4+2 = 6
+        r-x -> 4+1 = 5
+        r-- -> 4
+    
+    Common permission values
+        755 -> rwx r-x r-x
+        owner: Everything, groups and others: read + execute
+        644 -> rw- r-- r--
+        owner: read+write, groups and others: only read
+        700 -> rwx --- ---
+        owner: everthing
+        600 -> rw- --- ---
+        Used for secerts like SSH private keys, Cerifications, Passwords
+    
+    Change permissions
+        suppose -rw-r--r--
+        chmod 755 app.py -> -rwx-r-x-r-x
+        Want this: rw-r--r--
+        run chmod 644 app.py
+    
+    Symbolic chmod
+        Instead of numbers
+            chmod +x app.py -> from -rw-r--r-- to -rwx-r-x-r-x
+        Adds execution permission to every user
+        Remove execution permissions
+            chmod -x app.py
+        Add write permissions
+            chmod +w app.py
+    
+    Change ownership
+        sudo chown ubuntu app.py
+    Owner becomes ubuntu user
+
+    Change ownership and group
+        sudo chown ubuntu:hacker app.py
+        ubuntu - owner
+        hacker - group
+    
+    sudo -> sudo runs the command with administrator (root) privilege
+
+#### Why is 777 dangerous?
+    rwxrwxrwx
+    Everyone can: Read,write,execute
+    image your django project has settings.py file that has 777 permissions
+    Any user on the system can modify it. That's a significant security risk.
+
+    It grants full permissions to everyone, increasing the risk of unauthorized modification or execution. It's generally better to follow the principle of least privilege and grant only the permissions that are actually needed.
+    
+#### Questions
+    1.What does -rwxr-xr-- mean?
+        - regular file
+        owner has everything(read,write,execute)
+        Group can read,exeute
+        Other has only read permissions
+    2.Difference between 755 and 644?
+        644 -> owner has read,write. group and other have read permissions
+        Used for normal files
+        755 -> owner has everything. group and others have read, execute permissions
+        Used for directories and executable files
+    3.Why is 777 dangerous?
+        Gives all the permission to every user,increasing the risk of unauthorized modification or execution
+        Always use least privilege for security.
+    4.Difference between chmod and chown
+        Chmod -> changes permissions
+        Chown -> change ownership and or/group of the file
+    5.What is sudo?
+        sudo temporarily executes a command with superuser (root) privileges without logging in as the root user.
+    6.Owner, Group, Others?
+        Owner: simply the user who owns the file, which can be any user.
+            suppose i have created temp.txt i will be the owner
+        Group: can be a group of people like developers group, devops group
+        others: Everyone else.
+        Root is simply a special administrator account. not always a owner
+    7.Why does a directory need Execute permission?
+        The execute (x) permission on a directory allows a user to traverse or enter the directory. Without execute permission, even if the directory has read permission, the user cannot access files inside it or use cd to enter it.
+    For directories:
+        r -> List names inside the directory.
+        x -> Enter/traverse the directory.
+        w -> Create, rename, or delete files in the directory (subject to ownership and other rules).
 
 
+
+
+    
+    
     

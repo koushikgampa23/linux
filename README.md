@@ -348,7 +348,48 @@ The linux readme contains all the commands
         x -> Enter/traverse the directory.
         w -> Create, rename, or delete files in the directory (subject to ownership and other rules).
 
+## Process in linux
+    A process is simply a program that is currently running.
+        program(stored on disk) -> executed -> program(running in memory)
+    Process lifecyle:
+        program -> process created -> Running -> waiting for i/o -> running again -> finished
+    When a django application receives request
+        running -> waiting for postgresql -> running -> return response -> waiting
+    The process keeps on switching between running and waiting.
+    Every process has an id that is called PID(process id).
+    You use the PID to inspect or stop a process.
 
+    View running process
+        ps
+        ps -ef(This the command we use most)
+            -e = show every process on system
+            -f = show full format output(UID, PID, PPID, start time, command, etc)
+        This is why it's commonly used with grep.
+    Instead of looking for every process we ca grep the processes
+        ps -ef | grep python
+        That gives python process
+    
+    Top
+        Displays live system information. CPU Usage, Memory usage, Running processes, Load average
+    htop
+        improved version of top
+        Advantages:
+            Easier to read
+            Colored interface
+            Search process
+            kill processes interactively
+        most linux admins prefer this htop
+### Foreground vs background Process
+    Run: python manage.py runserver
+    Terminal is occupied
+    This is foreground process
+    You cant use the terminal until you stop it
+
+    Run: python manage.py runserver &
+    Server keeps running
+    Terminal becomes available
+    This is a background process
+    
 
 
     

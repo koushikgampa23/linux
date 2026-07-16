@@ -1237,7 +1237,109 @@ The linux readme contains all the commands
         Upstream timeout
         Attack (e.g., DDoS)
     Restarting may temporarily hide the symptom without fixing the cause
-    
+
+## Disk and memory monitoring
+    1.df(Disk Filesystem)
+        df -h
+        it give filesystem, size, used, avail, Use%, mounted on
+    why -h?
+        without it 20971520
+        with -h 20G human readable
+    2.du(Disk Usage)
+        Shows how much space files and directories consume.
+        du -sh logs #2.4 gb logs
+
+        Check all folders
+        du -sh *
+        output:
+            3G logs
+            2G uploads
+            50M app
+    3.df vs du
+        df: shows disk usage of entire filesystem
+        du: shows disk usage of specific directory or file
+    4.free
+        free -h
+        shows rams usage
+        total 8gb, used 5gb, free 2gb, swap 1 gb
+    5.Swap
+        Swap is disk space used as extra memory when RAM is full.
+        Ram Full -> linux moves less used memory pages to disk -> swap
+        swap is much slower than ram
+        High swap usage often means the server needs more memory or processes are using too much RAM.
+    6.vmstat
+        Shows virtual memory and CPU statistics.
+        vmstat
+        It gives information about:
+            Running processes
+            Blocked processes
+            Memory
+            Swap
+            CPU
+    7.iostat
+        Shows disk I/O performance.
+        iostat
+        Useful when the application is waiting on slow disk operations.
+        Example:
+        PostgreSQL is slow because disk writes are saturated.
+        Large backups are consuming disk bandwidth.
+
+### Scenarios
+    Scenario 1:
+        users cannot upload files
+        check disk
+            df -h
+        if the usage is 100%, the disk is full
+        Next:
+            du -sh *
+            it shows 18G logs
+        Solution:
+            Rotate or clean old logs.
+            Compress/archive logs.
+            Investigate why logs are growing so quickly.
+    Scenario 2:
+        Gunicorn keeps getting killed.
+        check memory:
+            free -h
+        The disk has 25M
+        The server has almost no free memory.
+        Possible solutions:
+            Reduce Gunicorn workers
+            Increase Instance size
+            Investigate memory tasks
+    Scenario 3:
+        vmstat
+        The application feels slow.
+        The cpu is only 10% use
+        Memory usage is fine.
+        check: iostat
+        Disk utilization is very high
+        The bottleneck is the storage subsystem, not the CPU.
+
+### Questions
+    1.Difference between df -h and du -sh logs
+        df -h shows disk usage of the entire filesystem (total, used, available, and usage percentage).
+        du -sh logs shows how much disk space the specific logs directory is using.
+    2.Disk is 100%
+        File uploads fail
+        Logs cannot be written
+        PostgreSQL may fail to write data or WAL files
+        Temporary files cannot be created
+        Backups may fail
+        Some applications may even crash
+    3.Free RAM is 20 MB
+        ram exhausted, investigate memory leaks or reduce Gunicorn workers
+        can add:
+            Check which process is consuming memory using top or htop
+            Scale up the instance if memory is consistently insufficient
+    4.What is swap?
+        When RAM is full, Linux moves less frequently used memory pages to disk (swap). Since disk access is much slower than RAM, heavy swap usage can significantly reduce application performance.
+    5.iostat
+        Use iostat when you suspect disk I/O is the bottleneck. Unlike top, which focuses on CPU and memory, iostat helps identify whether slow reads or writes are causing application performance issues.
+
+
+
+
 
 
 

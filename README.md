@@ -658,6 +658,366 @@ The linux readme contains all the commands
     6.HTTP 500 Debugging
         Check process -> check listening -> check live logs -> call api -> observe logs
 
+## Shell scripting
+    The kernal talks to hardware
+    The shell is a program that lets you communicate with the kernal by typing commands.
+    
+    ls -> Shell interprets the command and asks kernal to execute it.
+
+    What is Bash?
+        Bourne Again SHell
+    It is the most commonly used shell on Linux.
+
+    Instead of typing 20 commands line by line i can put this commands in file as deploy.sh
+        #!/bin/bash
+        echo "Starting Application"
+        python manage.py migrate
+        python manage.py collectstatic
+        systemctl restart gunicorn
+        echo "Deployment Completed"
+    
+    bash deploy.sh or chmod +x deploy.sh
+                       ./deploy.sh
+    This is why deployment automation works
+
+### Shell scripting basics
+    The first line is called Shebang #!/bin/bash
+    Tells linux to execute the script using bash
+    with out it ./deploy.sh doesnot know which interpretor to use
+
+    Comments: # ignoned by bash, useful for documentation
+
+    1.Variables:
+        NAME="Koushik"
+        NAME = "Koushik" # spaces are not allowed
+    To print name:
+        echo $NAME
+    
+    2.User Input
+        read NAME
+        echo $NAME
+    Save this code in app.log file and now execute bash app.log
+    koushik
+    output: koushik
+
+    2.1.User friendly input
+        read -p "Enter Name: " NAME
+        echo "Hello $NAME"
+    Input:
+        Enter Name: koushik
+    Output:
+        hello koushik
+    
+    3.Echo
+    print text
+        echo "hello"
+    print variables
+        echo $NAME
+    combine
+        echo "hello $NAME"
+    
+    4.Command Substitution
+    Store output of another command
+        CURRENT=$(pwd)
+        echo $CURRENT
+    
+### 5.If statement
+        if [ 5 -gt 3 ]
+        then
+            echo "True"
+        fi
+    fi is the reverse of if, it marks the end of if block
+    Compare Numbers:
+        -eq Equal
+        -ne Not Equal
+        -gt Greater than
+        -lt less than
+        -ge greater than or equal
+        -le less than or equal
+    
+    Codes:
+    code1:
+        A=5
+        if [ $A -gt 3 ]
+        then
+            echo "True"
+        fi
+    code2:(string comparison)
+        NAME="Koushik"
+        if [ $NAME = "Koushik" ]
+        then
+            echo "Matched"
+        fi
+    if-else:
+        if [ 5 -ge 3 ]
+        then
+            echo "True"
+        else
+            echo "False"
+        fi
+    if-elif-else
+        MARKS=95
+        if [ $MARKS -ge 90 ]
+        then
+            echo "First class"
+        elif [ $MARKS -ge 80 ]
+        then
+            echo "Second class"
+        else
+            echo "Third class"
+        fi
+    In moden bash we can use arithmetic operators directly
+    code:
+        MARKS=95
+        if (( MARKS > 90 )); then
+            echo "First class"
+        elif (( MARKS > 80 )); then
+            echo "Second class"
+        else
+            echo "Third class"
+        fi
+### For loop
+    codes:
+        for i in 1 2 3 4 5
+        do
+            echo $i
+        done
+
+    Another way
+        for i in {1..5}
+        do
+            echo $1
+        done
+
+    Step increment
+        for i in {0..10..2}
+        do
+            echo "$i" # if we use quotes even if the value is error it wont throw
+        done    
+        output: 0,2,4,6,..10
+
+    C type style(similar to python)(recommended)
+        for((i=1;i<10;i++))
+        do
+            echo $i
+        done
+
+    print all the .py files
+        for i in *.py
+        do
+            echo $i
+        done
+
+### While loop
+    COUNT=1
+    while [ $COUNT -ge 5 ]
+    do
+        echo $COUNT
+        COUNT=$((COUNT+1))
+    done
+    
+    Arithemetic syntax(recommended)
+    COUNT=1
+    while (( COUNT <= 5 ))
+    do
+        echo $COUNT
+        ((COUNT++))
+    done
+
+### Function
+    Create simple greet function
+        greet() {
+            echo "Hello"
+        }
+        greet #calling the function
+    Creat greet function with 2 name inputs
+        greet() {
+            echo "Hello $1"
+            echo "hi $2"
+        }
+        great koushik abc
+        output:
+            Hello koushik
+            hi abc
+    Check number
+        check_number() {
+            if [ $1 -ge $2 ]
+            then
+                return 0
+            else
+                return 1
+            fi
+        }
+        check_number 2 3
+        echo $?
+    $? contains the exit status of the last command:
+    0 -> Success
+    Non-zero -> Failure
+
+    Sum function using local variable
+    sum() {
+        local RESULT=$(($1+$2))
+        echo "Sum=$RESULT"
+    }
+    sum 10 20
+    output: Sum=30
+
+### $?
+    Linux commands that contains exit code of last command
+    0 -> success
+    Non-zero -> Failure
+
+    mkdir project
+    $?
+    Output: 0 -> sucess, 1 -> directory already exists
+
+    Mainly used for ci/cd pipelines
+    code:
+        python manage.py test
+        if [ $? eq 0 ]
+        then
+            echo "Deploy sucess"
+        else
+            echo "Failed test cases"
+        fi
+
+    Check if file exists are not
+        if [ -f app.log ]
+    Check if directory exists are not
+        if [ -d dir ]
+
+### Production script
+    #!/bin/bash
+    if ps -ef | grep gunicorn | grep -v grep > /dev/null
+    then
+        echo "Gunicorn Running"
+    else
+        echo "Restarting Gunicorn"
+        sudo systemctl restart gunicorn
+    fi
+
+### concepts
+    #!/bin/bash -> Shebang
+    echo -> print text
+    read -> user input
+    $VAR -> Access varibale
+    $(command) -> Store command output
+    if -> conditional logic
+    for -> Loop over values
+    while -> Repeat while condition is true
+    $? -> Exit status code of previous executed command
+    -f -> Check if file exists
+    -d -> check if directoy exists
+
+### Questions
+    1.why do we use grep -v grep command in this ps -ef | grep gunicorn | grep -v grep?
+    ps -ef | grep gunicorn
+    It will give grep process as well along with gunicron
+    Example:
+    ps -ef | grep python
+        root       212     1  0 Jul15 ?        00:00:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+        koushik   3478  3458  0 04:13 pts/5    00:00:00 grep --color=auto python
+    Notice we got 2 processes
+    To invert grep command we can use
+    ps -ef | grep python | grep -v grep
+        root       212     1  0 Jul15 ?        00:00:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+    we got only one process
+
+    2.Imagine Gunicorn crashes
+        Start script -> check if the gunicron process exists -> yes -> print "Gunicorn is running" -> Exit
+        No -> Restart Gunicron -> Check again -> if running -> print "Gunicorn restarted successfully" -> else -> print "Gunicorn failed to restart"
+    
+    3.why do we use quotes for the variables?
+        NAME=""
+        if [ $NAME = "Koushik" ]
+        then
+            echo "Matched"
+        else
+            echo "Mismactched"
+        fi
+        I will get error since NAME Is empty the if statment will work if [ = "Koushik" ] fail
+        if i use quote it will treat if [ "" = "Koushik" ] will work
+
+        Even to avoid name spliting
+        $NAME="koushik g"
+        if [ "$NAME" = "koushik g" ]
+    
+    4.difference between -f, -d, -e?
+        -f -> checks if file exists are not
+        -d -> checks if directory exists
+        -e -> checks the path if exists are not
+
+        Example: app.py file, logs directory
+        -f app.py # checks app.py exists or not
+        -f logs #fail since logs is directory
+
+        -d logs #checks logs directory exists or not
+        -d app.py # fails since it is file
+
+        -e logs #logs path exists true
+        -e app.py #app.py path exists true
+
+    5.write a script to see if logs exists or not, if not create a logs directory?
+        if [ -d "logs" ]
+        then
+            echo "Logs directory already exists"
+        else
+            if mkdir logs
+            then
+                echo "Logs directory created successfully"
+            else
+                echo "Failed to create logs directory"
+            fi
+        fi
+    
+    6.write a script for this
+        Check if Gunicorn is running.
+        If it is running:
+        Print "Gunicorn is already running".
+        If it is not running:
+        Restart Gunicorn using systemctl.
+        After restarting:
+        Check again whether it's running.
+        Print either:
+        "Gunicorn restarted successfully"
+        or "Gunicorn failed to start".
+    Code:
+        #!/bin/bash
+
+        GUNICORN_COMMAND=$(ps -ef | grep gunicorn | grep -v grep)
+
+        if [ -n "$GUNICORN_COMMAND" ]
+        then
+            echo "Gunicorn is already running"
+        else
+            echo "Restarting Gunicorn..."
+
+            if sudo systemctl restart gunicorn
+            then
+                GUNICORN_COMMAND=$(ps -ef | grep gunicorn | grep -v grep)
+
+                if [ -n "$GUNICORN_COMMAND" ]
+                then
+                    echo "Gunicorn restarted successfully"
+                else
+                    echo "Gunicorn failed to start"
+                fi
+            else
+                echo "Restart command failed"
+            fi
+        fi
+
+    7.In the previous script used mkdir logs for if statement but dont we use if sudo sytemctl restart gunicorn to check if gunicorn restarted or not why again check process again?
+        
+        mkdir logs gives 0 success, non-zero if permission issue
+        sudo systemctl restart gunicorn the gunicorn will give 0 sucess but soon if there is any code error it will fail so it is always better to check process gunicorn is running or not
+    
+    
+
+
+
+
+    
     
 
 

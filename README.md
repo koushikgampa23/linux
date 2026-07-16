@@ -559,4 +559,106 @@ The linux readme contains all the commands
         curl localhost:8000
         if it fails probably the django application has issue
     
+## Linux logs and text processing
+    1.cat -> Displays entire content of the file
+        cat app.log
+    when to use:
+        small files
+        Configuration files
+        Quick inspection
+    
+    2.less -> view a file page by page
+        less app.log
+    Useful keys:
+        Space -> next page
+        b -> previous page
+        /error -> search an error
+        n -> next search result
+        q -> Quit
+    
+    3.head -> shows first few lines(default is 10 lines)
+        head app.log
+    To view first 20 lines
+        head -20 app.log
+    
+    4.tail -> shows last few lines(10 default)
+        tail app.log
+    To view last 20 lines
+        tail -20 app.log or tail -n 20 app.log
+    
+    5.tail -f -> The terminal stays open and shows new log entries as they have written
+        tail -f app.log
+    To view last 100 logs and live data
+        tail -100 -f app.log or tail -n 100 -f app.log
+    
+    6.grep -> Searches for text
+    Suppose your logs have 10k lines
+    Find only errors.
+        grep ERROR app.log
+    Ignore case:
+        grep -i error app.log
+    Count matches:
+        grep -c ERROR app.log
+        output: 15
+    
+    7.Combine commands using pipelines(|)
+        ps -ef | grep python
+    The | (pipe) sends output of the first command as input to the second.
+        ss -ltunp | grep 3000
+    
+    8.journalctl
+        Many services (like Docker, Ngnix, Gunicorn) log through systemd
+        View logs:
+            journalctl
+        View logs for Ngnix:
+            journalctl -u ngnix
+        View logs for Gunicorn:
+            journalctl -u gunicorn
+        Show only last 100 lines:
+            journalctl -u gunicorn -n 100
+        Live logs:
+            journalctl -u gunicorn -f
+    
+    9.awk -> extracts column from a text
+        ps -ef | awk '{print $2}'
+    This prints the second column which is PID
+
+    10.sed -> Edits or replaces the text
+        Replace Error with Warn
+        sed 's/Error/Warn' app.log
+    Replace every occurrence:
+        sed 's/Error/Warn/g' app.log
+    The g means "global" (all occurrences on each line).
+
+### Production debugging senario
+    The API returns 500 internal error
+    1.Check process is runnig or not
+        ps -ef | grep gunicorn
+    2.Check wheather it is listening
+        ss -ltunp | grep 8000
+    3.Watch logs
+        journal -u gunicorn -f
+    4.call an api while watching logs
+        curl http://localhost:8000/
+    you might see: Database connection failed
+    Now you know the problem isn't Django - it's the database connection.
+
+### Questions
+    1.Why do we use tail -f instead of cat?
+        tail -f continuously monitors new log entries as they are written, making it ideal for debugging live applications. cat prints the entire file once and then exits, which is impractical for large or continuously growing log files.
+    2.grep ERROR app.log
+        It searches for all lines containing: ERROR
+    3.Pipe (|)
+        The output of the first command is passed as an input to second command
+        cat app.log | grep ERROR
+    4.journalctl
+        journalctl is used to view logs managed by systemd, including services like Docker, Nginx, Gunicorn, PostgreSQL, and many others.
+    5.head vs tail
+        head displays first few lines and tail displays last few lines
+    6.HTTP 500 Debugging
+        Check process -> check listening -> check live logs -> call api -> observe logs
+
+    
+
+
         

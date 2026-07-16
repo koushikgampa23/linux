@@ -1011,8 +1011,236 @@ The linux readme contains all the commands
         
         mkdir logs gives 0 success, non-zero if permission issue
         sudo systemctl restart gunicorn the gunicorn will give 0 sucess but soon if there is any code error it will fail so it is always better to check process gunicorn is running or not
+
+## Sytemd and Systemctl (Service Management)
+    why do we need services?
+    Imagine i have ran the application using
+        python manage.py runserver
+    The application stops when i close terminal, ssh out of server, ec2 rebooted
+    That's why we dont run applications like that in production
+    Instead linux runs them as services.
+    Example:
+        Nginx, postgresql, redis, docker, gunicorn, ssh
+    These are managed by systemd
+
+    what is a Systemd?
+        systemd is the service manager in the modern linux.
+        Its also the PID 1
+    Its responsibility includes:
+        Starting services during boot
+        Stopping services
+        Restarting services
+        Monitoring services
+        Restarting crashed services
+        Managing logs(through journalctl)
     
+    What is a systemctl?
+        it is a commandline tool used to communicate with systemd.
+        you dont need to interact with systemd directly.
+        use:
+        systemctl
     
+### Systemctl commands
+    1.Check status of ngnix
+        systemctl status ngnix
+        output:
+            nginx.service - A high performance web server
+            Active: active (running)
+            Main PID: 1050
+        Tells you:
+            Is the service running?
+            pid
+            recent logs, startup time
+    
+    2.Start a service
+        sudo systemctl start ngnix
+    
+    3.Stop a service
+        sudo systemctl stop ngnix
+    
+    4.Restart a service
+        sudo systemctl restart ngnix
+    
+    5.Reload vs restart
+        restart
+        sudo systemctl restart ngnix
+            stops the service
+            starts it again
+            connections may be interputed
+        reload
+        sudo systemctl reload ngnix
+            Reloads the config without fully stopping the service
+            useful when changing:
+                ngnix.conf
+                virtual hosts
+    
+    6.Enable a service
+        Suppose Ec2 reboots will ngnix start automatically?
+        No we need to enable the service
+            sudo systemctl enable ngnix
+        When ec2 reboots the ngnix will start automaticlly
+
+    7.Disable a service
+        sudo systemctl disable ngnix
+    
+    8.Check wheather a service is enabled
+        sudo systemctl is-enabled ngnix
+    
+    9.Check wheather a service is running
+        systemctl is-active ngnix
+            give active or inactive
+            much better than ps
+    
+        Script friendly
+            if systemctl is-active --quiet nginx
+            then
+                echo "Running"
+            fi
+    
+    10.view logs
+        journalctl -u ngnix
+
+### Service unit files
+    Every service has a configuration file.
+    usally located at: /etc/systemd/system/ or /lib/systemd/system/
+    Example:
+        gunicorn.service
+        Content:
+            [Unit]
+            Description=Gunicorn
+
+            [Service]
+            User=ubuntu
+            WorkingDirectory=/home/ubuntu/project
+            ExecStart=/home/ubuntu/venv/bin/gunicorn config.wsgi
+
+            [Install]
+            WantedBy=multi-user.target
+
+        [Unit]: contains general information
+        [Service]: realwork is here
+            user: ubuntu
+            working dir it is just like cd /home/ubuntu/project
+            execution command: similar to running gunicorn config.wsgi
+    
+### Suppose you modify service configuration files
+    I have changed contents in gunicorn configuration file
+    Linux automatically wont detect the changes
+        sudo systemctl daemon-reload
+    This tells systemd to reload all its service definations
+    Then restart gunicron
+        sudo systemctl restart gunicorn
+
+### Real production issue
+    The deployment is done, the website is down
+    Check gunicorn active or not -> Check gunicorn logs -> fix configuration or dependency issues -> reload system configuration files if edited gunicorn config files -> restart service -> check is the service active
+
+    1.Check the service status
+        sudo systemctl status gunicorn
+    2.If its inactive check logs
+        journalctl -u gunicorn -f  
+    3.fix the issue (configuration or missing dependency)
+    4.reload service definations if you edited the service file
+        sudo systemctl daemon-reload
+    5.Restart the service
+        sudo systemctl restart gunicorn
+    6.Check is active
+        sudo systemctl is-active gunicorn
+
+### Questions
+    1.What is systemd?
+        systemd is the init system and service manager in modern Linux. It starts services during boot, manages their lifecycle (start, stop, restart), monitors them, and manages their logs through journalctl. It also runs as PID 1.
+    2.Why use systemctl instead of python manage.py runserver?
+        if we close the teminal or ssh out of server or linux rebooted the application will not work anymore if we run through systemctl as a service then all the problems will be fixed
+            python manage.py runserver is:
+        Development server
+        Single process
+        Not designed for production
+        production uses: Internet -> ngnix -> gunicorn -> django
+        Production uses gunicorn itself is managed by systemctl
+    3.restart vs reload?
+        restart stops the application and start the application, may interrupt the service, reload not going to stop the application, reloads the config no down time of service
+    4.Purpose of enable
+        systemctl enable configures the service to start automatically during system boot.
+    5.daemon-reload
+        if we have changed the service configuration the systemd doesnot know we did some changes, daemon-reload lets systemd to reload all service definations
+    6.Why systemctl is-active instead of ps -ef | grep?
+        ps only tells us:
+        "A process exists."
+        It doesn't tell us whether:
+            The service is healthy
+            It failed during startup
+            It is managed by systemd
+        systemctl is-active tells us the actual service state.
+        it can give status like active, inactive, failed, activating, deactivating
+        So it's more accurate for services managed by systemd.
+
+## Debug production
+    My application deployed like this
+    Internet -> AWS load balancer(optional) -> Ngnix -> Gunicorn -> Django -> Postgresql
+    User sees:
+        502 bad gateway
+        Nginx cannot get a valid response from Gunicorn (its upstream).
+    
+    Step1: Check Ngnix
+        systemctl status ngnix
+        look for errors
+        journalctl -u ngnix -100
+
+    Step2: Check gunicorn
+        systemctl status gunicorn
+            if inactive: check logs
+            journalctl -u ngnix -100
+            Typical errors can be:
+                ModuleNotFoundError
+                Permission denied
+                Address already in use
+                ImportError
+    Step3: check gunicorn is listening
+        ss -ltun | grep 8000
+        even if gunicorn is listening, is it actually running on expected port?
+        if not ngnix cannot connect to it.
+    Step4: Test the backend directly
+        curl http://localhost:8000/
+        possible results:
+            200 ok
+        connection refused:
+            Gunicorn is not serving requests
+    Step5: check resources
+        htop
+            cpu, memory, swap
+            If memory is exhausted, Gunicorn may have been killed by the OOM killer.
+    Step6: Check database
+        if gunicorn logs this
+            OperationalError
+            could not connect to PostgreSQL
+        then:
+            systemctl status postgresql
+        is postgres listening?
+            ps -ef | grep postgres
+    Step7: Only after confirming the applicaiton is running locally would check this:
+        dig mycompany.com
+        DNS is usually not the cause of a 502 Bad Gateway.
+    Step8: Network / Firewall
+        curl localhost:8000 works but users cant access the application
+        then investigate:
+            AWS Security Groups
+            Network ACLs
+            Load Balancer
+            Firewall
+    Step9: If Nginx CPU usage is 100%
+        Investigate why CPU usage is high before restarting.
+        High CPU could be caused by:
+        Traffic spike
+        Infinite redirect loop
+        Misconfiguration
+        Upstream timeout
+        Attack (e.g., DDoS)
+    Restarting may temporarily hide the symptom without fixing the cause
+    
+
+
+
 
 
 

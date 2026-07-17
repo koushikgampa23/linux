@@ -1337,6 +1337,113 @@ The linux readme contains all the commands
     5.iostat
         Use iostat when you suspect disk I/O is the bottleneck. Unlike top, which focuses on CPU and memory, iostat helps identify whether slow reads or writes are causing application performance issues.
 
+## Cron jobs(Task Scheduling)
+    Imagine you need to:
+        Take a postgresql backup every day at 2am
+        delete logs every sunday
+        Run a cleanup script every hour
+        send reports every morning
+    You dont want to ssh manually into the server
+
+    what is a cron?
+        Cron is job-scheduler in linux.
+        it automatically runs scripts or commands at scheduled times.
+    
+    what is crontab?
+        crontab (Cron Table) is the file where you define scheduled jobs.
+    
+    Commands:
+        view all your cron jobs -> crontab -l
+        edit your cron job -> crontab -e
+        remove all cron jobs ->  crontab -r
+    
+    Every cron job has 5 time fields followed by command
+        Minute(0-59) Hour(0-23) Day_of_month(1-31) Month(1-12) Day_of_week(0-7)(sunday=0 or 7)
+    
+    To Run every minute
+        * * * * * /home/ubuntu/script.sh
+    
+    Every day at 2 am
+        * 2 * * * /home/ubuntu/backup.sh
+        Meaning: Minute: 0, Hour: 2, Every day, every month, every weekday
+    
+    Every sunday at 3 am
+        * 3 * * 0 /home/ubuntu/cleanup.sh
+    
+    Every 5 minutes
+        */5 * * * * /home/ubuntu/script.sh
+        why */5 defines for every 5 minutes like 9:00,9:05,9:10,9:15...
+        if i use direct 5
+        5 * * * * /home/ubuntu/script.sh
+        The script will run every hour at 5 minute like 9:05,10:05,11:05
+    
+    Every hour
+        0 * * * * /home/ubuntu/script.sh mean every 0th minute like 10:00, 11:00
+    
+    Common ones:
+        Every 2 hours            * */2 * * *
+        Every day at midnight    0 0 * * *
+        every day at 2:30am      30 2 * * *
+        Every sunday at 3 am     0 3 * * 0
+    
+    Redirect output to log file
+    0 2 * * * /home/ubuntu/script.sh >> /var/log/backup.log 2>&1
+    
+    2>&1 redirect standard error(2) to the same place of standard output(1)
+    Now the logs contains both success and failure logs
+
+    Run python with cron
+    0 2 * * * /usr/bin/python3 /home/ubuntu/script.py
+
+### Production scenarios
+    1. Daily Database Backup
+        0 2 * * * /home/ubuntu/scripts/backup.sh
+    2.Delete Old Logs
+        0 0 * * 0 find /var/log/myapp -name "*.log" -mtime +30 -delete
+        Every sunday at midnight, delete log files older than 30 days
+    3.Health Check
+        */10 * * * * /home/ubuntu/scripts/check_gunicorn.sh
+        The script checks whether Gunicorn is running and restarts it if necessary.
+    4.Cleanup Temporary Files
+        0 1 * * * rm -rf /tmp/myapp/*
+        Runs daily at 1 AM.
+
+    Common Mistakes:
+        1.Always use absolute path instead of relative path for cron jobs
+            * * * * * script.sh use this * * * * * /home/ubuntu/script.sh
+        2.Check the file is executable or not
+            if not make it executable
+            chmod +x /home/ubuntu/script.sh
+
+### Questions
+    1. crontab -l vs crontab -e
+        crontab -l -> Lists the current user's cron jobs.
+        crontab -e -> Opens the current user's crontab for editing.
+    2.Why absolute paths?
+        Cron runs with a minimal environment and a different working directory, so relative paths may not resolve correctly. Using absolute paths ensures the correct script and executables are found.
+    3.Script works manually but not in Cron
+        1.Check absolute paths
+        2.script permissions
+            chmod +x backup.sh
+        3.Environment variables
+            Cron does not load your interactive shell environment.
+                If your script depends on:
+                    DATABASE_URL
+                    DJANGO_SETTINGS_MODULE
+                    PATH
+                    VIRTUAL_ENV
+                it may fail.
+        4.Python virtual environment
+            Instead of: python backup.py
+            use: /home/ubuntu/venv/bin/python backup.py
+        5.Logging
+            0 2 * * * /home/ubuntu/backup.sh >> /var/log/backup.log 2>&1
+        6.Test the script manually
+            ./backup.sh
+        If it fails manually too, the issue isn't Cron.
+
+    
+
 
 
 

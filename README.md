@@ -1442,7 +1442,70 @@ The linux readme contains all the commands
             ./backup.sh
         If it fails manually too, the issue isn't Cron.
 
+## Environment Variables
+    An environment variable is a key-value pair stored by the operating system that applications can access.
+    View environmental variables
+    printenv or env
+    print 1 variable echo $HOME
+
+    create env variable at command line
+    export DATABASE_URL="postgresql"
+
+    if i open new terminal the variable disappears
+
+    Environment vaiables in python
+    import os
+    secret = os.getenv("SECRET_KEY", "default-value")
+
+    many python projects use .env file.
+    Libraries like python-dotenv read this file and populate environment variables.
+    Important: The .env file itself is not an environment variable. It's just a convenient file that your application reads.
     
+### Questions
+    1.What is an environment variable?
+        An environment variable is a key-value pair maintained by the operating system that processes and applications can access at runtime.
+    2.Why use environment variables?
+        Environment variables separate configuration from code. The same application code can run in development, staging, and production by changing only the environment variables, without modifying the source code. They also prevent sensitive information like passwords and API keys from being hardcoded.
+    3.differenc between APP=backend and export APP=backend
+        APP=backend
+            Creates a shell variable.
+            Only the current shell knows about it.
+            Child processes do not.
+                python app.py
+                os.getenv("APP") #python cannot access it
+        export APP=backend
+            Now it becomes an environment variable.
+            Child processes inherit it.
+            os.getenv("APP") #python can access it
+        
+        APP=backend -> Current shell only
+        export APP=backend -> current shell -> All child process
+    4.PATH
+        PATH is an environment variable that tells Linux where to search for executable programs.
+        python
+        Linux searches python at /usr/local/bin, /usr/bin, /bin
+        if python found in /usr/local/bin then executes if not fails
+    5.why .env in .gitignore?
+        Database passwords
+            AWS Keys
+            API Keys
+            JWT Secrets
+            Secret Keys
+    6.Django says SECRET_KEY not found
+        1.Is the variable actually defined?
+            echo $SECRET_KEY
+        2.If using a .env file:
+            Does it exist?
+            Does it contain SECRET_KEY?
+            Is python-dotenv installed?
+            Is the application loading the .env file?
+        3.If running as a systemd service:
+            systemctl does not automatically load your shell's .bashrc.
+            The environment variables may not exist for the service.
+                EnvironmentFile=/path/to/.env in the service file
+            
+
+
 
 
 
